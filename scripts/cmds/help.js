@@ -1,4 +1,3 @@
-+cmd install help.js  
 const axios = require("axios");
 const { getPrefix } = global.utils;
 const { commands, aliases } = global.GoatBot;
