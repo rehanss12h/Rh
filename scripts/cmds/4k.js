@@ -1,64 +1,56 @@
-const a = require("axios");
-const f = require("fs");
-const p = require("path");
-
-const u = "http://65.109.80.126:20409/aryan/4k";
+const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
 
 module.exports = {
   config: {
     name: "4k",
-    aliases: ["upscale"],
-    version: "1.1",
+    version: "2.0",
     role: 0,
-    author: "ArYAN",
-    countDown: 10,
-    longDescription: "Upscale images to 4K resolution.",
+    author: "Aryan Chauhan",
+    countDown: 5,
+    longDescription: "Upscale images to 4K resolution using iHancer AI.",
     category: "image",
     guide: {
-      en: "${pn} reply to an image to upscale it to 4K resolution."
+      en: "{pn} reply to an image to upscale it (default: type=2, level=low)."
     }
   },
 
-  onStart: async function ({ message, event }) {
+  onStart: async function ({ message, event, args }) {
     if (
       !event.messageReply ||
       !event.messageReply.attachments ||
       !event.messageReply.attachments[0] ||
       event.messageReply.attachments[0].type !== "photo"
     ) {
-      return message.reply("📸 Please reply to an image to upscale it.");
+      return message.reply("⚠ Please reply to an image to upscale it.");
     }
 
-    const i = event.messageReply.attachments[0].url;
-    const t = p.join(__dirname, "cache", `upscaled_${Date.now()}.png`);
-    let m;
+    const originalUrl = event.messageReply.attachments[0].url;
+    const type = args[0] && !isNaN(args[0]) ? args[0] : 2; // default method 2
+    const level = args[1] && ["low", "medium", "high"].includes(args[1].toLowerCase()) ? args[1].toLowerCase() : "low";
 
-    try {
-      const r = await message.reply("🔄 Processing your image, please wait...");
-      m = r.messageID;
+    const apiUrl = `https://arychauhann.onrender.com/api/ihancer?url=${encodeURIComponent(originalUrl)}&type=${type}&level=${level}`;
 
-      const d = await a.get(`${u}?imageUrl=${encodeURIComponent(i)}`);
-      if (!d.data.status) throw new Error(d.data.message || "API error");
+    message.reply("🔄 Processing your image with iHancer AI... Please wait.", async (err, info) => {
+      try {
+        const response = await axios.get(apiUrl, { responseType: "arraybuffer" });
 
-      const x = await a.get(d.data.enhancedImageUrl, { responseType: "stream" });
-      const w = f.createWriteStream(t);
-      x.data.pipe(w);
+        const filePath = path.join(__dirname, `ihancer_${Date.now()}.png`);
+        fs.writeFileSync(filePath, Buffer.from(response.data));
 
-      await new Promise((res, rej) => {
-        w.on("finish", res);
-        w.on("error", rej);
-      });
+        await message.reply({
+          body: `✅ Here is your enhanced image (type=${type}, level=${level})`,
+          attachment: fs.createReadStream(filePath)
+        });
 
-      await message.reply({
-        body: "✅ Your 4K upscaled image is ready!",
-        attachment: f.createReadStream(t),
-      });
-    } catch (e) {
-      console.error("Upscale Error:", e);
-      message.reply("❌ An error occurred while upscaling the image. Please try again later.");
-    } finally {
-      if (m) message.unsend(m);
-      if (f.existsSync(t)) f.unlinkSync(t);
-    }
+        fs.unlinkSync(filePath);
+
+        message.unsend(info.messageID);
+      } catch (error) {
+        console.error("4k.onStart error:", error?.response?.data || error.message);
+        message.reply("❌ There was an error processing your image. Please try again later.");
+      }
+    });
   }
 };
