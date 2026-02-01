@@ -169,7 +169,7 @@ module.exports.onReply = async ({ api, event, Reply }) => {
 module.exports.onChat = async ({ api, event, message }) => {
     try {
         const body = event.body ? event.body.toLowerCase() : "";
-        if (body.startsWith("baby") || body.startsWith("bby") || body.startsWith("bot") || body.startsWith("jan") || body.startsWith("babu") || body.startsWith("alya")) {
+        if (body.startsWith("baby") || body.startsWith("bby") || body.startsWith("bot") || body.startsWith("jan") || body.startsWith("babu") || body.startsWith("mikasa")) {
             const arr = body.replace(/^\S+\s*/, "");
             
             
